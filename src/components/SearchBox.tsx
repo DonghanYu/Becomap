@@ -1,6 +1,11 @@
+import { BASE_PATH, IS_STATIC_DEMO } from "@/lib/mode";
+
+// 정적 데모(GitHub Pages)는 폴더형 주소(/search/)를 써야 쿼리가 유지됩니다.
+const SEARCH_ACTION = `${BASE_PATH}/search${IS_STATIC_DEMO ? "/" : ""}`;
+
 export function SearchBox({ defaultValue = "" }: { defaultValue?: string }) {
   return (
-    <form action="/search" method="get" role="search" className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch">
+    <form action={SEARCH_ACTION} method="get" role="search" className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch">
       <label htmlFor="q" className="sr-only">
         되고 싶은 직업
       </label>

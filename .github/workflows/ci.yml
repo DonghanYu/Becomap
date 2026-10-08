@@ -1,22 +1,16 @@
 name: ci-deploy
 
-# 흐름: 테스트 → (배포 브랜치 push 또는 수동 실행 시) Supabase 마이그레이션 → Vercel 프로덕션 배포
-# 필요한 GitHub Secrets는 docs/DEPLOY.md "GitHub에서 자동 배포" 절을 참고하세요.
-# 비밀 값이 아직 등록되지 않았으면 배포 단계는 건너뛰고 안내만 남깁니다(테스트는 항상 실행).
+# 흐름: 테스트 → (배포 브랜치 push 또는 수동 실행 시) GitHub Pages에 읽기 전용 데모 배포
+# 데모 주소: https://donghanyu.github.io/Becomap/
+# 최초 1회: 저장소 Settings → Pages → Build and deployment → Source를 "GitHub Actions"로 설정
 
 on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      seed:
-        description: "합성 시드(supabase/seed.sql)도 적용 — 빈 DB에 처음 한 번만"
-        type: boolean
-        default: false
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -53,7 +47,7 @@ jobs:
         env:
           CI: "1"
 
-  deploy:
+  pages:
     needs: test
     # 배포 브랜치 push 또는 Actions 화면의 수동 실행(Run workflow)에서만 배포
     if: >-
@@ -61,58 +55,48 @@ jobs:
       (github.event_name == 'push' &&
        (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/awesome-wright-url30z'))
     runs-on: ubuntu-latest
-    environment: production
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/becomap
     steps:
       - uses: actions/checkout@v4
-
-      - name: 비밀 값 확인
-        id: check
-        run: |
-          missing=""
-          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-            [ -z "${!v}" ] && missing="$missing $v"
-          done
-          if [ -n "$missing" ]; then
-            echo "::warning::배포를 건너뜁니다. 등록되지 않은 Secrets:$missing (docs/DEPLOY.md 참고)"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: supabase/setup-cli@v1
-        if: steps.check.outputs.ready == 'true'
-        with:
-          version: 2.120.0
-
-      - name: Supabase 마이그레이션 적용
-        if: steps.check.outputs.ready == 'true'
-        run: |
-          supabase link --project-ref "$SUPABASE_PROJECT_ID"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.seed }}" = "true" ]; then
-            supabase db push --include-seed
-          else
-            supabase db push
-          fi
-
       - uses: actions/setup-node@v4
-        if: steps.check.outputs.ready == 'true'
         with:
           node-version: 22
           cache: npm
-
-      - name: Vercel 프로덕션 배포
-        if: steps.check.outputs.ready == 'true'
+      - run: npm ci
+      - name: 합성 데이터 DB 준비(스텁 + 마이그레이션 + 시드)
+        run: bash scripts/db/local_reset.sh
+      - name: 정적 데모 빌드(집계 뷰를 anon 권한으로 읽어 페이지 생성)
+        run: bash scripts/build_static.sh
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+      - name: 정적 데모 E2E
         run: |
-          npm ci
-          npx -y vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx -y vercel@latest build --prod --token="$VERCEL_TOKEN"
-          url=$(npx -y vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          echo "배포 URL: $url"
-          echo "### 배포 완료: $url" >> "$GITHUB_STEP_SUMMARY"
+          npx playwright install --with-deps chromium
+          npx playwright test -c playwright.static.config.ts
+        env:
+          CI: "1"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out-static
+      - id: deployment
+        uses: actions/deploy-pages@v4

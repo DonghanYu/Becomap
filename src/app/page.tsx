@@ -1,19 +1,16 @@
 import { OccupationChips } from "@/components/OccupationChips";
 import { SearchBox } from "@/components/SearchBox";
+import { WithdrawnBanner } from "@/components/WithdrawnBanner";
 import { publicData } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+// 집계는 자주 바뀌지 않으므로 60초마다 다시 만듭니다(정적 데모 빌드에서는 빌드 시점 값).
+export const revalidate = 60;
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ withdrawn?: string }> }) {
-  const { withdrawn } = await searchParams;
+export default async function HomePage() {
   const occupations = await (await publicData()).listOccupations();
   return (
     <div className="mx-auto max-w-2xl space-y-8 pt-6">
-      {withdrawn && (
-        <p role="status" className="rounded-xl bg-brand-soft p-4 text-sm">
-          동의를 철회했어요. 기여자 정보와 경로가 모두 삭제되었습니다.
-        </p>
-      )}
+      <WithdrawnBanner />
       <section className="space-y-3">
         <h1 className="text-3xl font-bold leading-tight tracking-tight">
           무엇이 되고 싶나요?

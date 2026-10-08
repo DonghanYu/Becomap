@@ -3,6 +3,8 @@
 장래희망을 검색하면 현직 종사자들이 지나온 경로(학교·학원·시험·첫 소속)를 합산한 경로 그래프를 보여주는 웹 서비스의 MVP입니다.
 계획은 [`docs/PLAN.md`](docs/PLAN.md), 작업 규칙은 [`CLAUDE.md`](CLAUDE.md), 배포는 [`docs/DEPLOY.md`](docs/DEPLOY.md)를 참고하세요.
 
+> 읽기 전용 데모: https://donghanyu.github.io/Becomap/ (GitHub Pages, 배포 방법은 `docs/DEPLOY.md` 0절)
+>
 > 현재 경로 데이터는 모두 **합성(가상) 데이터**입니다. 실제 종사자 통계가 아닙니다.
 
 ## 구성

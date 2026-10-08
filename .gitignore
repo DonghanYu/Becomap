@@ -21,3 +21,5 @@ reports/*
 supabase/.temp/
 supabase/.branches/
 .vercel/
+out-static/
+.static-build/

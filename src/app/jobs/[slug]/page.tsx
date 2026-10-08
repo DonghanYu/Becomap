@@ -6,7 +6,14 @@ import { publicData } from "@/lib/data";
 import { iGa } from "@/lib/josa";
 import { GROUP_LABEL } from "@/lib/stages";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+// 정적 데모 빌드에서는 16개 직업 페이지를 모두 미리 만듭니다. 서버 배포에서는 요청 시 생성합니다.
+export async function generateStaticParams() {
+  if (process.env.STATIC_EXPORT !== "1") return [];
+  const occupations = await (await publicData()).listOccupations();
+  return occupations.map((o) => ({ slug: o.slug }));
+}
 
 export default async function JobPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
