@@ -48,7 +48,13 @@
 주소: **https://donghanyu.github.io/Becomap/**
 
 `.github/workflows/ci.yml`의 `pages` 작업이 테스트 통과 후 자동으로 배포합니다
-(`main` 또는 `claude/awesome-wright-url30z` 브랜치 push, 또는 Actions → ci-deploy → Run workflow).
+(`main` 또는 `claude/awesome-wright-url30z` 브랜치 push 시 자동, 또는 아래처럼 수동 실행).
+
+수동으로 다시 배포하는 방법(PC 브라우저 기준)
+- 새로 실행: 저장소 상단 **Actions** 탭 → 왼쪽 목록에서 **ci-deploy** 클릭 →
+  실행 목록 위 오른쪽의 **Run workflow** 버튼 → 브랜치 선택 → 초록색 **Run workflow**.
+  (왼쪽 목록에서 ci-deploy를 먼저 고르지 않으면 버튼이 보이지 않습니다. 모바일 화면에서는 왼쪽 목록이 접혀 있을 수 있습니다.)
+- 실패한 실행 다시 돌리기: Actions 탭 → 실패한 실행 클릭 → 오른쪽 위 **Re-run jobs** → **Re-run failed jobs**.
 
 - 최초 1회만: 저장소 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 바꿉니다.
 - 동작: Actions 안에서 Postgres를 띄워 합성 시드를 넣고, 공개 집계 뷰를 `anon` 권한으로 읽어 정적 HTML을 만듭니다
